@@ -19,6 +19,7 @@ What are the particular problems in the community that could be solved via machi
 ## Roles
 * Developing Use Cases
 * Evangelism / Community
+* Analytics (per Britney: [Analytics](https://ga-beacon.appspot.com/UA-XXXXX-X/gist-id?pixel))
 * Coding
 * Tutorials
 * Documentation / Readability
@@ -45,3 +46,6 @@ Most folders include a Todo.txt with some suggested items to start with.
 * Config.py: Holds API keys and configuration data.
 * Main.py: The main application file.
 * requirements.txt: Python libraries needed to install via Pip.
+
+
+Original concept gist: ([source](https://gist.github.com/jroakes/e84180a6ebafce11cecc9554421a9ac3))
