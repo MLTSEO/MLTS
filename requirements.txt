@@ -2,3 +2,4 @@ gensim
 nltk
 git+https://github.com/storerjeremy/python-semrush.git
 googleanalytics
+Spacy
