@@ -1,2 +1,2 @@
 # MLTS
-Machine Learning Repository for SEO
+Machine Learning Toolkit for SEO
