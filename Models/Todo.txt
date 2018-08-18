@@ -1,0 +1,6 @@
+Example: https://github.com/eriklindernoren/ML-From-Scratch/tree/master/mlfromscratch
+For: Pytorch and Tensorflow
+
+Format:
+pytorch-gan.py
+tf-gan.py

@@ -1,0 +1,3 @@
+Spacy
+StarSpace
+Facebook and Google libraries
