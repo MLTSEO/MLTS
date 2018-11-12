@@ -1,3 +1,5 @@
 Spacy
 StarSpace
 Facebook and Google libraries
+Universal Sentence Encoder
+https://www.tensorflow.org/hub/modules/google/universal-sentence-encoder/1

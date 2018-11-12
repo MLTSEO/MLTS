@@ -4,3 +4,6 @@ For: Pytorch and Tensorflow
 Format:
 pytorch-gan.py
 tf-gan.py
+
+
+https://developers.google.com/machine-learning/guides/rules-of-ml/

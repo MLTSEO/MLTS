@@ -1,5 +1,8 @@
 gensim
 nltk
-git+https://github.com/storerjeremy/python-semrush.git
 googleanalytics
+goose3 
 Spacy
+pytorch
+torchtext
+watson_developer_cloud

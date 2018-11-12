@@ -1,6 +1,8 @@
 # MLTS
 Machine Learning Toolkit for SEO
 
+Initial demo notebook [here](https://github.com/MLTSEO/MLTS/blob/master/Demos.ipynb)
+
 ## What are the problems/needs?
 What are the particular problems in the community that could be solved via machine learning.
 * Generating better titles.
