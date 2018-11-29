@@ -1,8 +1,9 @@
 gensim
 nltk
 googleanalytics
-goose3 
+goose3
 Spacy
 pytorch
 torchtext
 watson_developer_cloud
+pytorch-pretrained-bert
