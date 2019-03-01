@@ -34,6 +34,20 @@ A curated list of libraries with application to SEO
 - [tensorflow-wavenet](https://github.com/ibab/tensorflow-wavenet) - DeepMind's WaveNet.
 
 
+## Examples
+
+- [Seedbank](https://research.google.com/seedbank/) - Collection of interactive machine learning models.
+- [Google CodeLabs](https://codelabs.developers.google.com/?cat=TensorFlow) - Guided Tensorflow tutorials.
+- [Tensorflow Workshops](https://github.com/tensorflow/workshops) - Colab Notebook examples.
+- [Tensorflow.js](https://js.tensorflow.org/) - Interactive tensorflow.js demos.
+- [Tensorflow Wide & Deep](https://github.com/tensorflow/models/tree/master/official/wide_deep) - Predicting income with the census income dataset example.
+- [What If Tool](https://pair-code.github.io/what-if-tool/) - Inspect the inner worrkings of a model, no code required.
+- [PEAR](https://ai.google/research/teams/brain/pair) - People + AI Research
+- [Facets](https://pair-code.github.io/facets/) - Interactive data vizualiztion.
+- [Beat Blender](https://experiments.withgoogle.com/ai/beat-blender/view/) - Make beats with machine learning.
+- [Quick, Draw!](https://quickdraw.withgoogle.com/) - Give Google your drawing training data. :)
+- [Breast Cancer Detection](https://colab.research.google.com/drive/1ANmq66IO-nKoYWOTC1eIyqvtNxlR7bkn) - Incredible example of how machine learning can help detect cancer.
+
 ## NLP
 
 - [gensim](https://github.com/piskvorky/gensim) - Topic Modeling.
