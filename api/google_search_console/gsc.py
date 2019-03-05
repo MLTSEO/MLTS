@@ -57,9 +57,23 @@ class GscClient(object):
         """
         return service.searchanalytics().query(
           siteUrl=property_uri, body=request).execute()
+    
+    
+    
+    '''
+    Parameters:
 
+    Positional:
+    clienturl: (str) The domain URL property name in Google Search Console.
+    days_back: (int) How many days history to pull.
 
-
+    Keyword:
+    thresholdtype: (str)  'click' or 'impression'. Default: impression
+    threshold: (int) Keep pulling, daily until less than this number of either clicks or impressions. Default: 1
+    poslimit: (int) Omit results above this limit. Default: None
+    country: (str) Country. Default: usa
+    outputFn: (str) Name of the output file.  If not set, a unique name will be chosen.
+    '''
     def get_site_data(self, clienturl, days, **data):
 
         thresholdtype = data.get('threshold_type', 'impression')
