@@ -85,9 +85,9 @@ def pre_process_datasets(encoded_datasets, input_len, cap_length, start_token, d
                 lm_labels[i, 1, :len(with_cont2)] = with_cont2
                 mc_labels[i] = mc_label
             except Exception as e:
-                print('Exception:, str(e))
-                print('cont1', str(with_cont1))
-                print('cont2', str(with_cont2))
+                print('Exception:', str(e))
+                print('cont1:', str(with_cont1))
+                print('cont2:', str(with_cont2))
                 exit()
 
         all_inputs = (input_ids, mc_token_ids, lm_labels, mc_labels)
