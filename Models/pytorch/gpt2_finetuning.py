@@ -60,7 +60,7 @@ def load_dataset(tokenizer, dataset, num_prior = None, t='train'):
 
       
       
-def pre_process_datasets(encoded_datasets, input_len, cap_length, start_token, delimiter_token, clf_token):
+def pre_process_datasets(encoded_datasets, input_len, cap_length, start_token, delimiter_token, clf_token, unk_token):
     """ Pre-process datasets containing lists of tuples(story, 1st continuation, 2nd continuation, label)
         To Transformer inputs of shape (n_batch, n_alternative, length) comprising for each batch, continuation:
         input_ids[batch, alternative, :] = [start_token] + story[:cap_length] + [delimiter_token] + cont1[:cap_length] + [clf_token]
