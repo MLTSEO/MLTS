@@ -92,6 +92,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str, default='gpt2-medium',
                         help='pretrained model name')
+    parser.add_argument("--do_train", action='store_true', default=True, help="Whether to run training.")
     parser.add_argument("--output_dir", default='fintuned_gpt', type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument('--dataset', type=str, default='', required=True)
@@ -157,17 +158,17 @@ def main():
             return obj
         return list(tokenize_and_encode(o) for o in obj)
     logger.info("Encoding dataset...")
-	
+
     train_dataset = load_dataset(tokenizer, args.dataset, num_prior = args.num_prior)
     eval_dataset = load_dataset(tokenizer, args.dataset, num_prior = args.num_prior)
-	
+
     datasets = (train_dataset, eval_dataset)
     encoded_datasets = tokenize_and_encode(datasets)
 
     # Compute the max input length for the Transformer
     max_length = model.config.n_positions // 2 - 2
     input_length = max(len(story[:max_length]) + max(len(cont1[:max_length]), len(cont2[:max_length])) + 3  \
-                           for dataset in encoded_datasets for story, cont1, cont2, _ in dataset)
+                        for dataset in encoded_datasets for story, cont1, cont2, _ in dataset)
     input_length = min(input_length, model.config.n_positions)  # Max size of input for the pre-trained model
 
     # Prepare inputs tensors and dataloaders
@@ -184,62 +185,62 @@ def main():
 
     # Prepare optimizer
 
-	if args.max_steps > 0:
-		t_total = args.max_steps
-		args.num_train_epochs = args.max_steps //\
-			(len(train_dataloader) // args.gradient_accumulation_steps) + 1
-	else:
-		t_total = len(train_dataloader)\
-			// args.gradient_accumulation_steps * args.num_train_epochs
+    if args.max_steps > 0:
+        t_total = args.max_steps
+        args.num_train_epochs = args.max_steps //\
+            (len(train_dataloader) // args.gradient_accumulation_steps) + 1
+    else:
+        t_total = len(train_dataloader)\
+            // args.gradient_accumulation_steps * args.num_train_epochs
 
-	param_optimizer = list(model.named_parameters())
-	no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-	optimizer_grouped_parameters = [
-		{'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-		{'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-		]
-	optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
-	scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
+    param_optimizer = list(model.named_parameters())
+    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
 
 
-	nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
-	model.train()
-	for i, _ in enumerate(range(int(args.num_train_epochs))):
-		print('Starting Epoch: {} of {}'.format(str(i+1), str(int(args.num_train_epochs))))
-		tr_loss = 0
-		nb_tr_steps = 0
-		tqdm_bar = tqdm(train_dataloader, desc="Training")
-		for step, batch in enumerate(tqdm_bar):
-			batch = tuple(t.to(device) for t in batch)
-			input_ids, mc_token_ids, lm_labels, mc_labels = batch
-			losses = model(input_ids, mc_token_ids, lm_labels, mc_labels)
-			loss = args.lm_coef * losses[0] + losses[1]
-			loss.backward()
-			scheduler.step()
-			optimizer.step()
-			optimizer.zero_grad()
-			tr_loss += loss.item()
-			exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
-			nb_tr_steps += 1
-			tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, scheduler.get_lr()[0])
+    nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
+    model.train()
+    for i, _ in enumerate(range(int(args.num_train_epochs))):
+        print('Starting Epoch: {} of {}'.format(str(i+1), str(int(args.num_train_epochs))))
+        tr_loss = 0
+        nb_tr_steps = 0
+        tqdm_bar = tqdm(train_dataloader, desc="Training")
+        for step, batch in enumerate(tqdm_bar):
+            batch = tuple(t.to(device) for t in batch)
+            input_ids, mc_token_ids, lm_labels, mc_labels = batch
+            losses = model(input_ids, mc_token_ids, lm_labels, mc_labels)
+            loss = args.lm_coef * losses[0] + losses[1]
+            loss.backward()
+            scheduler.step()
+            optimizer.step()
+            optimizer.zero_grad()
+            tr_loss += loss.item()
+            exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
+            nb_tr_steps += 1
+            tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, scheduler.get_lr()[0])
 
 # Save a trained model
 
-	# Save a trained model, configuration and tokenizer
-	model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
+    # Save a trained model, configuration and tokenizer
+    model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
 
-	# If we save using the predefined names, we can load using `from_pretrained`
-	output_model_file = os.path.join(args.output_dir, WEIGHTS_NAME)
-	output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+    # If we save using the predefined names, we can load using `from_pretrained`
+    output_model_file = os.path.join(args.output_dir, WEIGHTS_NAME)
+    output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
 
-	torch.save(model_to_save.state_dict(), output_model_file)
-	model_to_save.config.to_json_file(output_config_file)
-	tokenizer.save_vocabulary(args.output_dir)
+    torch.save(model_to_save.state_dict(), output_model_file)
+    model_to_save.config.to_json_file(output_config_file)
+    tokenizer.save_vocabulary(args.output_dir)
 
-	# Load a trained model and vocabulary that you have fine-tuned
-	model = GPT2DoubleHeadsModel.from_pretrained(args.output_dir)
-	tokenizer = GPT2Tokenizer.from_pretrained(args.output_dir)
-	model.to(device)
+    # Load a trained model and vocabulary that you have fine-tuned
+    model = GPT2DoubleHeadsModel.from_pretrained(args.output_dir)
+    tokenizer = GPT2Tokenizer.from_pretrained(args.output_dir)
+    model.to(device)
 
 
 if __name__ == '__main__':
