@@ -60,7 +60,7 @@ def load_dataset(tokenizer, dataset, num_prior = None, t='train'):
 
       
       
-def pre_process_datasets(encoded_datasets, input_len, cap_length, start_token, delimiter_token, clf_token, unk_token):
+def pre_process_datasets(encoded_datasets, input_len, cap_length, start_token, delimiter_token, clf_token):
     """ Pre-process datasets containing lists of tuples(story, 1st continuation, 2nd continuation, label)
         To Transformer inputs of shape (n_batch, n_alternative, length) comprising for each batch, continuation:
         input_ids[batch, alternative, :] = [start_token] + story[:cap_length] + [delimiter_token] + cont1[:cap_length] + [clf_token]
@@ -149,9 +149,9 @@ def main():
     # Load tokenizer and model
     # This loading functions also add new tokens and embeddings called `special tokens`
     # These new embeddings will be fine-tuned on the RocStories dataset
-    special_tokens = ['[BOS]', '[SEP]', '[CLS]','[UNK]']
-    tokenizer = GPT2Tokenizer.from_pretrained(args.model_name, special_tokens=special_tokens)
-    tokenizer.unk_token = '[UNK]'
+    special_tokens = ['<|cls|>']
+    tokenizer = GPT2Tokenizer.from_pretrained(args.model_name, unk_token = '<|endoftext|>', bos_token = '<|endoftext|>', eos_token = '<|endoftext|>', cls_token='<|cls|>')
+    tokenizer.add_tokens(special_tokens) 
     special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in special_tokens)
     model = GPT2DoubleHeadsModel.from_pretrained(args.model_name)
     model.resize_token_embeddings(new_num_tokens=len(tokenizer))
