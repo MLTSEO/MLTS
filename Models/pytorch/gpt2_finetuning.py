@@ -25,20 +25,13 @@ def accuracy(out, labels):
     return np.sum(outputs == labels)
   
               
-def load_dataset(tokenizer, dataset, num_prior = None, t='train'):
+def load_dataset(tokenizer, dataset, num_prior = None):
 
     num_prior   = num_prior or 3
     df = pd.read_csv(dataset)
 
     # Clear empty and tokenize all input.
     text_data = [' '.join(t.split()) for t in df['Text'].tolist() if len(t.split()) > 1]
-    
-    sec = math.floor(len(text_data)*.75)
-    if t == 'train':
-       text_data = text_data[:sec]
-    else:
-       text_data = text_data[sec:]
-
 
     output = []
 
@@ -99,8 +92,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str, default='gpt2-medium',
                         help='pretrained model name')
-    parser.add_argument("--do_train", action='store_true', default=True, help="Whether to run training.")
-    parser.add_argument("--do_eval", action='store_true', default=True , help="Whether to run eval on the dev set.")
     parser.add_argument("--output_dir", default='fintuned_gpt', type=str,
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument('--dataset', type=str, default='', required=True)
@@ -140,9 +131,6 @@ def main():
     n_gpu = torch.cuda.device_count()
     logger.info("device: {}, n_gpu {}".format(device, n_gpu))
 
-    if not args.do_train and not args.do_eval:
-        raise ValueError("At least one of `do_train` or `do_eval` must be True.")
-
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
@@ -170,8 +158,8 @@ def main():
         return list(tokenize_and_encode(o) for o in obj)
     logger.info("Encoding dataset...")
 	
-    train_dataset = load_dataset(tokenizer, args.dataset, num_prior = args.num_prior, t='train')
-    eval_dataset = load_dataset(tokenizer, args.dataset, num_prior = args.num_prior, t='eval')
+    train_dataset = load_dataset(tokenizer, args.dataset, num_prior = args.num_prior)
+    eval_dataset = load_dataset(tokenizer, args.dataset, num_prior = args.num_prior)
 	
     datasets = (train_dataset, eval_dataset)
     encoded_datasets = tokenize_and_encode(datasets)
@@ -195,97 +183,64 @@ def main():
     eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
     # Prepare optimizer
-    if args.do_train:
-        if args.max_steps > 0:
-            t_total = args.max_steps
-            args.num_train_epochs = args.max_steps //\
-                (len(train_dataloader) // args.gradient_accumulation_steps) + 1
-        else:
-            t_total = len(train_dataloader)\
-                // args.gradient_accumulation_steps * args.num_train_epochs
 
-        param_optimizer = list(model.named_parameters())
-        no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-        optimizer_grouped_parameters = [
-            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-            ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
-        scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
+	if args.max_steps > 0:
+		t_total = args.max_steps
+		args.num_train_epochs = args.max_steps //\
+			(len(train_dataloader) // args.gradient_accumulation_steps) + 1
+	else:
+		t_total = len(train_dataloader)\
+			// args.gradient_accumulation_steps * args.num_train_epochs
 
-    if args.do_train:
-        nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
-        model.train()
-        for i, _ in enumerate(range(int(args.num_train_epochs))):
-            print('Starting Epoch: {} of {}'.format(str(i+1), str(int(args.num_train_epochs))))
-            tr_loss = 0
-            nb_tr_steps = 0
-            tqdm_bar = tqdm(train_dataloader, desc="Training")
-            for step, batch in enumerate(tqdm_bar):
-                batch = tuple(t.to(device) for t in batch)
-                input_ids, mc_token_ids, lm_labels, mc_labels = batch
-                losses = model(input_ids, mc_token_ids, lm_labels, mc_labels)
-                loss = args.lm_coef * losses[0] + losses[1]
-                loss.backward()
-                scheduler.step()
-                optimizer.step()
-                optimizer.zero_grad()
-                tr_loss += loss.item()
-                exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
-                nb_tr_steps += 1
-                tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, scheduler.get_lr()[0])
+	param_optimizer = list(model.named_parameters())
+	no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+	optimizer_grouped_parameters = [
+		{'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+		{'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+		]
+	optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+	scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
 
-    # Save a trained model
-    if args.do_train:
-        # Save a trained model, configuration and tokenizer
-        model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
 
-        # If we save using the predefined names, we can load using `from_pretrained`
-        output_model_file = os.path.join(args.output_dir, WEIGHTS_NAME)
-        output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+	nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
+	model.train()
+	for i, _ in enumerate(range(int(args.num_train_epochs))):
+		print('Starting Epoch: {} of {}'.format(str(i+1), str(int(args.num_train_epochs))))
+		tr_loss = 0
+		nb_tr_steps = 0
+		tqdm_bar = tqdm(train_dataloader, desc="Training")
+		for step, batch in enumerate(tqdm_bar):
+			batch = tuple(t.to(device) for t in batch)
+			input_ids, mc_token_ids, lm_labels, mc_labels = batch
+			losses = model(input_ids, mc_token_ids, lm_labels, mc_labels)
+			loss = args.lm_coef * losses[0] + losses[1]
+			loss.backward()
+			scheduler.step()
+			optimizer.step()
+			optimizer.zero_grad()
+			tr_loss += loss.item()
+			exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
+			nb_tr_steps += 1
+			tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, scheduler.get_lr()[0])
 
-        torch.save(model_to_save.state_dict(), output_model_file)
-        model_to_save.config.to_json_file(output_config_file)
-        tokenizer.save_vocabulary(args.output_dir)
+# Save a trained model
 
-        # Load a trained model and vocabulary that you have fine-tuned
-        model = GPT2DoubleHeadsModel.from_pretrained(args.output_dir)
-        tokenizer = GPT2Tokenizer.from_pretrained(args.output_dir)
-        model.to(device)
+	# Save a trained model, configuration and tokenizer
+	model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
 
-    if args.do_eval:
-        model.eval()
-        eval_loss, eval_accuracy = 0, 0
-        nb_eval_steps, nb_eval_examples = 0, 0
-        for batch in tqdm(eval_dataloader, desc="Evaluating"):
-            batch = tuple(t.to(device) for t in batch)
-            input_ids, mc_token_ids, lm_labels, mc_labels = batch
-            with torch.no_grad():
-               mc_loss, mc_logits = model(input_ids, mc_token_ids, lm_labels, mc_labels)
+	# If we save using the predefined names, we can load using `from_pretrained`
+	output_model_file = os.path.join(args.output_dir, WEIGHTS_NAME)
+	output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
 
-            mc_logits = mc_logits.detach().cpu().numpy()
-            mc_labels = mc_labels.to('cpu').numpy()
-            tmp_eval_accuracy = accuracy(mc_logits, mc_labels)
+	torch.save(model_to_save.state_dict(), output_model_file)
+	model_to_save.config.to_json_file(output_config_file)
+	tokenizer.save_vocabulary(args.output_dir)
 
-            eval_loss += mc_loss.mean().item()
-            eval_accuracy += tmp_eval_accuracy
+	# Load a trained model and vocabulary that you have fine-tuned
+	model = GPT2DoubleHeadsModel.from_pretrained(args.output_dir)
+	tokenizer = GPT2Tokenizer.from_pretrained(args.output_dir)
+	model.to(device)
 
-            nb_eval_examples += input_ids.size(0)
-            nb_eval_steps += 1
-
-        eval_loss = eval_loss / nb_eval_steps
-        eval_accuracy = eval_accuracy / nb_eval_examples
-        train_loss = tr_loss/nb_tr_steps if args.do_train else None
-        result = {'eval_loss': eval_loss,
-                  'eval_accuracy': eval_accuracy,
-                  'train_loss': train_loss}
-
-        output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
-        with open(output_eval_file, "w") as writer:
-            logger.info("***** Eval results *****")
-            for key in sorted(result.keys()):
-                logger.info("  %s = %s", key, str(result[key]))
-                writer.write("%s = %s\n" % (key, str(result[key])))
 
 if __name__ == '__main__':
     main()
