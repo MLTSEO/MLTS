@@ -149,9 +149,10 @@ def main():
     # Load tokenizer and model
     # This loading functions also add new tokens and embeddings called `special tokens`
     # These new embeddings will be fine-tuned on the RocStories dataset
-    special_tokens = ['<|cls|>']
+    # start_token, delimiter_token, clf_token
+    special_tokens = ['<|endoftext|>','<|endoftext|>','<|cls|>']
     tokenizer = GPT2Tokenizer.from_pretrained(args.model_name, unk_token = '<|endoftext|>', bos_token = '<|endoftext|>', eos_token = '<|endoftext|>', cls_token='<|cls|>')
-    tokenizer.add_tokens(special_tokens) 
+    tokenizer.add_tokens(special_tokens[-1:]) 
     special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in special_tokens)
     model = GPT2DoubleHeadsModel.from_pretrained(args.model_name)
     model.resize_token_embeddings(new_num_tokens=len(tokenizer))
