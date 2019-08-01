@@ -149,10 +149,9 @@ def main():
     # Load tokenizer and model
     # This loading functions also add new tokens and embeddings called `special tokens`
     # These new embeddings will be fine-tuned on the RocStories dataset
-    # start_token, delimiter_token, clf_token
-    special_tokens = ['<|endoftext|>','<|endoftext|>','<|cls|>']
+    special_tokens = ['<|cls|>']
     tokenizer = GPT2Tokenizer.from_pretrained(args.model_name, unk_token = '<|endoftext|>', bos_token = '<|endoftext|>', eos_token = '<|endoftext|>', cls_token='<|cls|>')
-    tokenizer.add_tokens(special_tokens[-1:]) 
+    tokenizer.add_tokens(special_tokens) 
     special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in special_tokens)
     model = GPT2DoubleHeadsModel.from_pretrained(args.model_name)
     model.resize_token_embeddings(new_num_tokens=len(tokenizer))
@@ -215,7 +214,8 @@ def main():
     if args.do_train:
         nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
         model.train()
-        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        for i, _ in enumerate(range(int(args.num_train_epochs))):
+			print('Starting Epoch: {} of {}'.format(str(i+1), str(int(args.num_train_epochs))))
             tr_loss = 0
             nb_tr_steps = 0
             tqdm_bar = tqdm(train_dataloader, desc="Training")
@@ -259,7 +259,7 @@ def main():
             batch = tuple(t.to(device) for t in batch)
             input_ids, mc_token_ids, lm_labels, mc_labels = batch
             with torch.no_grad():
-               _, mc_loss, _, mc_logits = model(input_ids, mc_token_ids, lm_labels, mc_labels)
+               mc_loss, mc_logits = model(input_ids, mc_token_ids, lm_labels, mc_labels)
 
             mc_logits = mc_logits.detach().cpu().numpy()
             mc_labels = mc_labels.to('cpu').numpy()
