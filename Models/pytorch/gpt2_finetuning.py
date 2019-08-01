@@ -73,23 +73,23 @@ def pre_process_datasets(encoded_datasets, input_len, cap_length, start_token, d
         lm_labels = np.full((n_batch, 2, input_len), fill_value=-1, dtype=np.int64)
         mc_labels = np.zeros((n_batch,), dtype=np.int64)
         for i, (story, cont1, cont2, mc_label), in enumerate(dataset):
-		    
-			try:
-               with_cont1 = [start_token] + story[:cap_length] + [delimiter_token] + cont1[:cap_length] + [clf_token]
-               with_cont2 = [start_token] + story[:cap_length] + [delimiter_token] + cont2[:cap_length] + [clf_token]
-               input_ids[i, 0, :len(with_cont1)] = with_cont1
-               input_ids[i, 1, :len(with_cont2)] = with_cont2
-               mc_token_ids[i, 0] = len(with_cont1) - 1
-               mc_token_ids[i, 1] = len(with_cont2) - 1
-               lm_labels[i, 0, :len(with_cont1)] = with_cont1
-               lm_labels[i, 1, :len(with_cont2)] = with_cont2
-               mc_labels[i] = mc_label
-			except Exception as e:
-			   print('Exception:, str(e))
-			   print('cont1', str(with_cont1))
-			   print('cont2', str(with_cont2))
-			   exit()
-			   
+   
+            try:
+                with_cont1 = [start_token] + story[:cap_length] + [delimiter_token] + cont1[:cap_length] + [clf_token]
+                with_cont2 = [start_token] + story[:cap_length] + [delimiter_token] + cont2[:cap_length] + [clf_token]
+                input_ids[i, 0, :len(with_cont1)] = with_cont1
+                input_ids[i, 1, :len(with_cont2)] = with_cont2
+                mc_token_ids[i, 0] = len(with_cont1) - 1
+                mc_token_ids[i, 1] = len(with_cont2) - 1
+                lm_labels[i, 0, :len(with_cont1)] = with_cont1
+                lm_labels[i, 1, :len(with_cont2)] = with_cont2
+                mc_labels[i] = mc_label
+            except Exception as e:
+                print('Exception:, str(e))
+                print('cont1', str(with_cont1))
+                print('cont2', str(with_cont2))
+                exit()
+
         all_inputs = (input_ids, mc_token_ids, lm_labels, mc_labels)
         tensor_datasets.append(tuple(torch.tensor(t) for t in all_inputs))
     return tensor_datasets
