@@ -156,6 +156,7 @@ def main():
     
     #start_token, delimiter_token, clf_token
     special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in ['<|endoftext|>', '<|endoftext|>', '<|cls|>'])
+    print(special_tokens_ids)
     model = GPT2DoubleHeadsModel.from_pretrained(args.model_name)
     model.resize_token_embeddings(len(tokenizer))
     model.to(device)
