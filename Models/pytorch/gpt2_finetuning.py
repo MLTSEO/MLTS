@@ -143,8 +143,8 @@ def main():
     # These new embeddings will be fine-tuned on the RocStories dataset.
     # start_token, delimiter_token, clf_token
 
-    special_tokens_dict = {'cls_token': '<|CLS|>',
-                           'unk_token': '<|UNK|>',
+    special_tokens_dict = {'cls_token': '<|cls|>',
+                           'unk_token': '<|unk|>',
                            'bos_token': '<|endoftext|>',
                            'eos_token': '<|endoftext|>',
                            'sep_token': '<|endoftext|>'
@@ -156,7 +156,6 @@ def main():
     
     #start_token, delimiter_token, clf_token
     special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in ['<|endoftext|>', '<|endoftext|>', '<|cls|>'])
-    print(special_tokens_ids)
     model = GPT2DoubleHeadsModel.from_pretrained(args.model_name)
     model.resize_token_embeddings(len(tokenizer))
     model.to(device)
