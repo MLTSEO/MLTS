@@ -99,7 +99,7 @@ def main():
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument('--dataset', type=str, default='', required=True)
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--opt_level', type=int, default='O1')
+    parser.add_argument('--opt_level', type=str, default='O1')
     parser.add_argument('--num_train_epochs', type=int, default=3)
     parser.add_argument('--train_batch_size', type=int, default=8)
     parser.add_argument('--eval_batch_size', type=int, default=8)
