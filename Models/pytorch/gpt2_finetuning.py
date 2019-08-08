@@ -154,7 +154,8 @@ def main():
     num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
     print('We have added', num_added_toks, 'tokens')
     
-    special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in special_tokens)
+    #start_token, delimiter_token, clf_token
+    special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in ['<|endoftext|>', '<|endoftext|>', '<|cls|>'])
     model = GPT2DoubleHeadsModel.from_pretrained(args.model_name)
     model.resize_token_embeddings(len(tokenizer))
     model.to(device)
