@@ -5,6 +5,8 @@ import random
 import logging
 from tqdm import tqdm, trange
 
+from apex import amp
+
 import numpy as np
 import pandas as pd
 import math
@@ -39,8 +41,8 @@ def load_dataset(tokenizer, dataset, num_prior = None):
         if i >= num_prior:
           pri = ' '.join(text_data[i-num_prior:i])
           nxt = text
-          rdm = random.choice(text_data)
-          if rdm == nxt:
+          rdm = nxt
+          while rdm == nxt:
             rdm = random.choice(text_data)
         
           s = random.choice([0,1])
@@ -97,6 +99,7 @@ def main():
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument('--dataset', type=str, default='', required=True)
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--opt_level', type=int, default='O1')
     parser.add_argument('--num_train_epochs', type=int, default=3)
     parser.add_argument('--train_batch_size', type=int, default=8)
     parser.add_argument('--eval_batch_size', type=int, default=8)
@@ -140,13 +143,20 @@ def main():
     # These new embeddings will be fine-tuned on the RocStories dataset.
     # start_token, delimiter_token, clf_token
 
-    special_tokens = ['<|endoftext|>', '<|endoftext|>', '<|cls|>']
-    tokenizer = GPT2Tokenizer.from_pretrained(args.model_name, unk_token = '<|endoftext|>', bos_token = '<|endoftext|>', eos_token = '<|endoftext|>', cls_token='<|cls|>')
-    tokenizer.add_tokens(special_tokens[-1:]) 
+    special_tokens_dict = {'cls_token': '<|CLS|>',
+                           'unk_token': '<|UNK|>',
+                           'bos_token': '<|endoftext|>',
+                           'eos_token': '<|endoftext|>',
+                           'sep_token': '<|endoftext|>'
+                          }
+    tokenizer = GPT2Tokenizer.from_pretrained(args.model_name)
+    
+    num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
+    print('We have added', num_added_toks, 'tokens')
+    
     special_tokens_ids = list(tokenizer.convert_tokens_to_ids(token) for token in special_tokens)
     model = GPT2DoubleHeadsModel.from_pretrained(args.model_name)
-    model.resize_token_embeddings(new_num_tokens=len(tokenizer))
-    
+    model.resize_token_embeddings(len(tokenizer))
     model.to(device)
 
 
@@ -202,6 +212,8 @@ def main():
     optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
 
+    model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level, verbosity=1)
+
 
     nb_tr_steps, tr_loss, exp_average_loss = 0, 0, None
     model.train()
@@ -215,15 +227,22 @@ def main():
             input_ids, mc_token_ids, lm_labels, mc_labels = batch
             losses = model(input_ids, mc_token_ids, lm_labels, mc_labels)
             loss = args.lm_coef * losses[0] + losses[1]
-            loss.backward()
-            scheduler.step()
-            optimizer.step()
-            optimizer.zero_grad()
+            with amp.scale_loss(loss, optimizer) as scaled_loss:
+                scaled_loss.backward()   
+                
+            if (nb_tr_steps + 1) % args.gradient_accumulation_steps == 0:
+                scheduler.step()
+                optimizer.step()
+                optimizer.zero_grad()
+                
             tr_loss += loss.item()
             exp_average_loss = loss.item() if exp_average_loss is None else 0.7*exp_average_loss+0.3*loss.item()
             nb_tr_steps += 1
             tqdm_bar.desc = "Training loss: {:.2e} lr: {:.2e}".format(exp_average_loss, scheduler.get_lr()[0])
 
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
 # Save a trained model
 
     # Save a trained model, configuration and tokenizer
